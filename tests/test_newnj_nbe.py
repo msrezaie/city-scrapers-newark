@@ -28,14 +28,14 @@ parsed_item = next(spider._parse_detail(test_detail_response), None)
 
 freezer.stop()
 
+"""
+Arbitrary number of items. 24 is the total
+number of meetings extracted from the organization's website.
+"""
+
 
 def test_count():
     assert len(parsed_items) == 24
-
-
-"""
-Uncomment below
-"""
 
 
 def test_title():
