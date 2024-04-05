@@ -1,7 +1,7 @@
 import re
 from datetime import datetime, time
 
-from city_scrapers_core.constants import BOARD, PASSED, TENTATIVE
+from city_scrapers_core.constants import BOARD
 from city_scrapers_core.items import Meeting
 from city_scrapers_core.spiders import CityScrapersSpider
 
@@ -13,7 +13,12 @@ class NewnjNbeSpider(CityScrapersSpider):
     start_urls = ["https://www.nps.k12.nj.us/board-of-education/meetings/"]
 
     def parse(self, response):
-        """`parse` should always `yield` Meeting items."""
+        """
+        Most of the meetings details are provided in a detail page.
+        Though the each meetings' location address varies and is taken
+        from the main page and passed as a meta value to the followed
+        callback method.
+        """
         meetings_table = response.css(
             ".su-table.su-table-alternate table tbody tr:not(:first-child)"
         )
@@ -28,8 +33,6 @@ class NewnjNbeSpider(CityScrapersSpider):
             )
 
     def _parse_detail(self, response):
-        """Parse details from the event detail page."""
-
         location_cell = response.meta["location_cell"]
 
         date = self._parse_date(response)
@@ -54,22 +57,16 @@ class NewnjNbeSpider(CityScrapersSpider):
         yield meeting
 
     def _parse_title(self, item):
-        """Parse or generate meeting title."""
         title = item.css("h1.entry-title::text").extract_first()
         return title
 
     def _gen_datetime(self, date, time_obj):
-        """
-        Generate a datetime object from a date and a time object.
-        If time_obj is None, set the time to midnight.
-        """
         if time_obj is None:
             time_obj = time(0, 0)  # Midnight
 
         return datetime.combine(date, time_obj)
 
     def _parse_start_end_time(self, item):
-        """Parses and reformats the start and end time of the meeting."""
         time_str = item.css(".su-table table tr:nth-child(2) td:nth-child(2)::text")[
             0
         ].get()
@@ -84,23 +81,19 @@ class NewnjNbeSpider(CityScrapersSpider):
         return None, None
 
     def _parse_date(self, item):
-        """Parse date from calendar element."""
-        # Extracting the date string
         date_str = item.css(
             ".su-table.su-table-alternate table tr td:nth-child(2)::text"
         )[0].get()
 
-        # Parsing the date string into a datetime object
         date_obj = datetime.strptime(date_str, "%m/%d/%Y")
 
         return date_obj
 
     def _parse_location(self, item, location_cell):
-        """Parse or generate location."""
         if "Virtual" in location_cell:
             return {
-                "address": location_cell,
-                "name": location_cell,
+                "address": "Virtual",
+                "name": "Virtual",
             }
 
         location_name = item.css(
@@ -112,7 +105,6 @@ class NewnjNbeSpider(CityScrapersSpider):
         }
 
     def _parse_links(self, item):
-        """Parse or generate links."""
         links = []
         watch_links = item.css(
             ".su-table.su-table-alternate table tbody tr:first-child td:nth-child(2)"
@@ -127,21 +119,20 @@ class NewnjNbeSpider(CityScrapersSpider):
                 links.append(link)
         return links
 
-    def _get_status(self, item):
-        """Determines the status of the meeting."""
-        if item["start"] < datetime.now():
-            return PASSED
-        return TENTATIVE
-
     def _get_ordinal_suffix(self, number):
-        """Returns the ordinal suffix for a number."""
+        """
+        Returns the ordinal suffix for a number.
+        """
         if 11 <= (number % 100) <= 13:
             return "th"
         else:
             return {1: "st", 2: "nd", 3: "rd"}.get(number % 10, "th")
 
     def _format_location(self, lst):
-        """Formats the location string."""
+        """
+        This method is used for back the ordinal suffix to the date
+        which was taken out during the inital extraction of the date.
+        """
         lst = [i.strip() for i in lst if i.strip()]
         if re.search(r"\d+$", lst[0]):
             number = int(re.search(r"\d+$", lst[0]).group())
