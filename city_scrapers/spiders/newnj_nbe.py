@@ -14,8 +14,8 @@ class NewnjNbeSpider(CityScrapersSpider):
 
     def parse(self, response):
         """
-        Most of the meetings details are provided in a detail page.
-        Though the each meetings' location address varies and is taken
+        Most of the meeting details are provided in a detail page.
+        Though each meeting's location address varies, so they are taken
         from the main page and passed as a meta value to the followed
         callback method.
         """
@@ -130,8 +130,8 @@ class NewnjNbeSpider(CityScrapersSpider):
 
     def _format_location(self, lst):
         """
-        This method is used for back the ordinal suffix to the date
-        which was taken out during the inital extraction of the date.
+        This method is used for writing back an ordinal suffix to the
+        location string which was taken out during the inital extraction.
         """
         lst = [i.strip() for i in lst if i.strip()]
         if re.search(r"\d+$", lst[0]):
